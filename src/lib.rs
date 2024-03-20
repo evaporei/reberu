@@ -18,7 +18,9 @@ pub struct Database {
 
 impl Database {
     pub fn new() -> Self {
-        Self { map: BTreeMap::new() }
+        Self {
+            map: BTreeMap::new(),
+        }
     }
 }
 
