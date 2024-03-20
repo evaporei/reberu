@@ -13,7 +13,7 @@ pub trait KV {
 use std::collections::BTreeMap;
 
 pub struct Database {
-    // TODO: for now just mock but we'll 
+    // TODO: for now just mock but we'll
     // do it properly in the file system :)
     map: BTreeMap<Vec<u8>, Vec<u8>>,
 }
@@ -60,4 +60,44 @@ fn test_full() {
     db.delete(b"abc").unwrap();
 
     assert!(!db.has(b"abc").unwrap());
+}
+
+pub struct DBIterator {
+    map: std::collections::btree_map::IntoIter<Vec<u8>, Vec<u8>>,
+}
+
+impl IntoIterator for Database {
+    type Item = (Vec<u8>, Vec<u8>);
+    type IntoIter = DBIterator;
+    fn into_iter(self) -> Self::IntoIter {
+        DBIterator {
+            map: self.map.into_iter(),
+        }
+    }
+}
+
+impl Iterator for DBIterator {
+    type Item = (Vec<u8>, Vec<u8>);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.map.next()
+    }
+}
+
+#[test]
+fn test_iter() {
+    let mut db = Database::new();
+    let numbers = vec!["one", "two", "three"];
+
+    for (i, n) in numbers.iter().enumerate() {
+        db.put((i + 1).to_string().as_bytes(), n.as_bytes()).unwrap();
+    }
+
+    assert_eq!(
+        db.into_iter().collect::<Vec<_>>(),
+        vec![
+            (b"1".to_vec(), b"one".to_vec()),
+            (b"2".to_vec(), b"two".to_vec()),
+            (b"3".to_vec(), b"three".to_vec())
+        ]
+    );
 }
