@@ -1,14 +1,10 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+pub enum Error {
+    KeyNotFound,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub trait KV {
+    fn get(&self, key: &[u8]) -> Result<Vec<u8>, Error>;
+    fn has(&self, key: &[u8]) -> Result<bool, Error>;
+    fn put(&mut self, key: &[u8], value: &[u8]) -> Result<(), Error>;
+    fn delete(&mut self, key: &[u8]) -> Result<(), Error>;
 }
