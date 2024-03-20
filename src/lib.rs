@@ -13,6 +13,8 @@ pub trait KV {
 use std::collections::BTreeMap;
 
 pub struct Database {
+    // TODO: for now just mock but we'll 
+    // do it properly in the file system :)
     map: BTreeMap<Vec<u8>, Vec<u8>>,
 }
 
