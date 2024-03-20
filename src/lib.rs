@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum Error {
     KeyNotFound,
 }
@@ -39,4 +40,20 @@ impl KV for Database {
         self.map.remove(key);
         Ok(())
     }
+}
+
+#[test]
+fn test_full() {
+    let mut db = Database::new();
+
+    assert!(!db.has(b"abc").unwrap());
+
+    db.put(b"abc", b"xyz").unwrap();
+
+    assert!(db.has(b"abc").unwrap());
+    assert_eq!(db.get(b"abc").unwrap(), b"xyz");
+
+    db.delete(b"abc").unwrap();
+
+    assert!(!db.has(b"abc").unwrap());
 }
