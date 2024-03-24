@@ -12,7 +12,7 @@ pub trait KV {
 
 use std::collections::BTreeMap;
 use std::fs::{File, OpenOptions};
-use std::io;
+use std::io::{self, Write};
 
 pub struct Database {
     writer: io::BufWriter<File>,
@@ -27,6 +27,7 @@ impl Database {
             .read(true)
             .write(true)
             .create(true)
+            .append(true)
             .open(filename)?;
 
         Ok(Self {
@@ -47,6 +48,10 @@ impl KV for Database {
         Ok(self.map.contains_key(key))
     }
     fn put(&mut self, key: &[u8], value: &[u8]) -> Result<(), Error> {
+        self.writer.write_all(key).unwrap();
+        self.writer.write_all(b",").unwrap();
+        self.writer.write_all(value).unwrap();
+        self.writer.write_all(b"\n").unwrap();
         self.map.insert(key.to_vec(), value.to_vec());
         Ok(())
     }
