@@ -11,18 +11,28 @@ pub trait KV {
 }
 
 use std::collections::BTreeMap;
+use std::fs::{File, OpenOptions};
+use std::io;
 
 pub struct Database {
+    writer: io::BufWriter<File>,
     // TODO: for now just mock but we'll
     // do it properly in the file system :)
     map: BTreeMap<Vec<u8>, Vec<u8>>,
 }
 
 impl Database {
-    pub fn new() -> Self {
-        Self {
+    pub fn new(filename: &str) -> io::Result<Self> {
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(filename)?;
+
+        Ok(Self {
+            writer: io::BufWriter::new(file),
             map: BTreeMap::new(),
-        }
+        })
     }
 }
 
@@ -48,7 +58,7 @@ impl KV for Database {
 
 #[test]
 fn test_full() {
-    let mut db = Database::new();
+    let mut db = Database::new("/tmp/test_full").unwrap();
 
     assert!(!db.has(b"abc").unwrap());
 
@@ -85,11 +95,12 @@ impl Iterator for DBIterator {
 
 #[test]
 fn test_iter() {
-    let mut db = Database::new();
+    let mut db = Database::new("/tmp/test_iter").unwrap();
     let numbers = vec!["one", "two", "three"];
 
     for (i, n) in numbers.iter().enumerate() {
-        db.put((i + 1).to_string().as_bytes(), n.as_bytes()).unwrap();
+        db.put((i + 1).to_string().as_bytes(), n.as_bytes())
+            .unwrap();
     }
 
     assert_eq!(
