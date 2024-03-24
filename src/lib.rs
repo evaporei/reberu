@@ -37,19 +37,23 @@ impl Database {
             map: BTreeMap::new(),
         })
     }
+
+    // extremely inefficient
+    fn read_rev(&self) -> impl Iterator<Item = Vec<Vec<u8>>> {
+        let reader = io::BufReader::new(self.file.try_clone().unwrap());
+        let mut lines: Vec<_> = reader.lines().map(Result::unwrap).collect();
+        lines.reverse();
+        lines.into_iter().map(|line| {
+            line.split(',')
+                .map(|s| s.as_bytes().to_vec())
+                .collect::<Vec<Vec<u8>>>()
+        })
+    }
 }
 
 impl KV for Database {
     fn get(&self, key: &[u8]) -> Result<Vec<u8>, Error> {
-        let reader = io::BufReader::new(self.file.try_clone().unwrap());
-        let mut lines: Vec<_> = reader.lines().map(Result::unwrap).collect();
-        lines.reverse();
-
-        for mut line in lines.into_iter().map(|line| {
-            line.split(',')
-                .map(|s| s.as_bytes().to_vec())
-                .collect::<Vec<Vec<u8>>>()
-        }) {
+        for mut line in self.read_rev() {
             let value = line.pop().unwrap();
             let line_key = line.pop().unwrap();
 
