@@ -12,9 +12,10 @@ pub trait KV {
 
 use std::collections::BTreeMap;
 use std::fs::{File, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, BufRead, Write};
 
 pub struct Database {
+    file: File,
     writer: io::BufWriter<File>,
     // TODO: for now just mock but we'll
     // do it properly in the file system :)
@@ -31,7 +32,8 @@ impl Database {
             .open(filename)?;
 
         Ok(Self {
-            writer: io::BufWriter::new(file),
+            writer: io::BufWriter::new(file.try_clone()?),
+            file,
             map: BTreeMap::new(),
         })
     }
@@ -39,6 +41,23 @@ impl Database {
 
 impl KV for Database {
     fn get(&self, key: &[u8]) -> Result<Vec<u8>, Error> {
+        let reader = io::BufReader::new(self.file.try_clone().unwrap());
+        let mut lines: Vec<_> = reader.lines().map(Result::unwrap).collect();
+        lines.reverse();
+
+        for mut line in lines.into_iter().map(|line| {
+            line.split(',')
+                .map(|s| s.as_bytes().to_vec())
+                .collect::<Vec<Vec<u8>>>()
+        }) {
+            let value = line.pop().unwrap();
+            let line_key = line.pop().unwrap();
+
+            if line_key == key {
+                return Ok(value.to_vec());
+            }
+        }
+
         match self.map.get(key) {
             Some(value) => Ok(value.to_vec()),
             None => Err(Error::KeyNotFound),
