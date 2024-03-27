@@ -11,7 +11,7 @@ pub trait KV {
 }
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Seek, SeekFrom, BufRead, Write};
 
@@ -19,7 +19,7 @@ pub struct Database {
     file: RefCell<File>,
     reader: RefCell<io::BufReader<File>>,
     writer: io::BufWriter<File>,
-    idxs: HashMap<Vec<u8>, u64>,
+    idxs: IndexMap<Vec<u8>, u64>,
 }
 
 impl Database {
@@ -36,7 +36,7 @@ impl Database {
             reader: io::BufReader::new(file.try_clone()?).into(),
             writer: io::BufWriter::new(file.try_clone()?),
             file: file.into(),
-            idxs: HashMap::new(),
+            idxs: IndexMap::new(),
         })
     }
 }
@@ -68,7 +68,8 @@ impl KV for Database {
         Ok(())
     }
     fn delete(&mut self, key: &[u8]) -> Result<(), Error> {
-        self.idxs.remove(key);
+        // O(n)
+        self.idxs.shift_remove(key);
         Ok(())
     }
 }
