@@ -90,43 +90,53 @@ fn test_full() {
     assert!(!db.has(b"abc").unwrap());
 }
 
-// pub struct DBIterator {
-//     map: std::collections::btree_map::IntoIter<Vec<u8>, Vec<u8>>,
-// }
-//
-// impl IntoIterator for Database {
-//     type Item = (Vec<u8>, Vec<u8>);
-//     type IntoIter = DBIterator;
-//     fn into_iter(self) -> Self::IntoIter {
-//         DBIterator {
-//             map: self.map.into_iter(),
-//         }
-//     }
-// }
-//
-// impl Iterator for DBIterator {
-//     type Item = (Vec<u8>, Vec<u8>);
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.map.next()
-//     }
-// }
-//
-// #[test]
-// fn test_iter() {
-//     let mut db = Database::new("/tmp/test_iter", true).unwrap();
-//     let numbers = vec!["one", "two", "three"];
-//
-//     for (i, n) in numbers.iter().enumerate() {
-//         db.put((i + 1).to_string().as_bytes(), n.as_bytes())
-//             .unwrap();
-//     }
-//
-//     assert_eq!(
-//         db.into_iter().collect::<Vec<_>>(),
-//         vec![
-//             (b"1".to_vec(), b"one".to_vec()),
-//             (b"2".to_vec(), b"two".to_vec()),
-//             (b"3".to_vec(), b"three".to_vec())
-//         ]
-//     );
-// }
+pub struct DBIterator {
+    reader: RefCell<io::BufReader<File>>,
+    idxs: indexmap::map::IntoIter<Vec<u8>, u64>,
+}
+
+impl IntoIterator for Database {
+    type Item = (Vec<u8>, Vec<u8>);
+    type IntoIter = DBIterator;
+    fn into_iter(self) -> Self::IntoIter {
+        DBIterator {
+            reader: self.reader,
+            idxs: self.idxs.into_iter(),
+        }
+    }
+}
+
+impl Iterator for DBIterator {
+    type Item = (Vec<u8>, Vec<u8>);
+    // very similar code to Database::get()
+    // perhaps we could abstract
+    fn next(&mut self) -> Option<Self::Item> {
+        let (key, offset) = self.idxs.next()?;
+        self.reader.borrow_mut().seek(SeekFrom::Start(offset)).unwrap();
+        let mut value = vec![];
+        self.reader.borrow_mut().read_until(b'\n', &mut value).unwrap();
+        // remove \n
+        value.pop();
+        Some((key, value))
+    }
+}
+
+#[test]
+fn test_iter() {
+    let mut db = Database::new("/tmp/test_iter", true).unwrap();
+    let numbers = vec!["one", "two", "three"];
+
+    for (i, n) in numbers.iter().enumerate() {
+        db.put((i + 1).to_string().as_bytes(), n.as_bytes())
+            .unwrap();
+    }
+
+    assert_eq!(
+        db.into_iter().collect::<Vec<_>>(),
+        vec![
+            (b"1".to_vec(), b"one".to_vec()),
+            (b"2".to_vec(), b"two".to_vec()),
+            (b"3".to_vec(), b"three".to_vec())
+        ]
+    );
+}
