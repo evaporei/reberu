@@ -10,10 +10,10 @@ pub trait KV {
     fn delete(&mut self, key: &[u8]) -> Result<(), Error>;
 }
 
-use std::cell::RefCell;
 use indexmap::IndexMap;
+use std::cell::RefCell;
 use std::fs::{File, OpenOptions};
-use std::io::{self, Seek, SeekFrom, BufRead, Write};
+use std::io::{self, BufRead, Seek, SeekFrom, Write};
 
 pub struct Database {
     file: RefCell<File>,
@@ -49,7 +49,10 @@ impl KV for Database {
         };
         self.file.borrow_mut().seek(SeekFrom::Start(*idx)).unwrap();
         let mut value = vec![];
-        self.reader.borrow_mut().read_until(b'\n', &mut value).unwrap();
+        self.reader
+            .borrow_mut()
+            .read_until(b'\n', &mut value)
+            .unwrap();
         // remove \n
         value.pop();
         Ok(value)
@@ -61,7 +64,10 @@ impl KV for Database {
         self.writer.write_all(key).unwrap();
         self.writer.write_all(b",").unwrap();
         self.writer.flush().unwrap();
-        self.idxs.insert(key.to_vec(), self.file.borrow_mut().stream_position().unwrap());
+        self.idxs.insert(
+            key.to_vec(),
+            self.file.borrow_mut().stream_position().unwrap(),
+        );
         self.writer.write_all(value).unwrap();
         self.writer.write_all(b"\n").unwrap();
         self.writer.flush().unwrap();
@@ -112,9 +118,15 @@ impl Iterator for DBIterator {
     // perhaps we could abstract
     fn next(&mut self) -> Option<Self::Item> {
         let (key, offset) = self.idxs.next()?;
-        self.reader.borrow_mut().seek(SeekFrom::Start(offset)).unwrap();
+        self.reader
+            .borrow_mut()
+            .seek(SeekFrom::Start(offset))
+            .unwrap();
         let mut value = vec![];
-        self.reader.borrow_mut().read_until(b'\n', &mut value).unwrap();
+        self.reader
+            .borrow_mut()
+            .read_until(b'\n', &mut value)
+            .unwrap();
         // remove \n
         value.pop();
         Some((key, value))
