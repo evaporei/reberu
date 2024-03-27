@@ -39,31 +39,6 @@ impl Database {
             idxs: HashMap::new(),
         })
     }
-
-    // very inefficient
-    fn read(&self) -> impl Iterator<Item = Vec<Vec<u8>>> {
-        let mut file_copy = self.file.borrow().try_clone().unwrap();
-        file_copy.seek(SeekFrom::Start(0)).unwrap();
-        io::BufReader::new(file_copy)
-            .lines().map(Result::unwrap)
-            .map(|line| {
-                line.split(',')
-                    .map(|s| s.as_bytes().to_vec())
-                    .collect::<Vec<Vec<u8>>>()
-            })
-    }
-
-    // extremely inefficient
-    fn read_rev(&self) -> impl Iterator<Item = Vec<Vec<u8>>> {
-        let reader = io::BufReader::new(self.file.borrow().try_clone().unwrap());
-        let mut lines: Vec<_> = reader.lines().map(Result::unwrap).collect();
-        lines.reverse();
-        lines.into_iter().map(|line| {
-            line.split(',')
-                .map(|s| s.as_bytes().to_vec())
-                .collect::<Vec<Vec<u8>>>()
-        })
-    }
 }
 
 impl KV for Database {
